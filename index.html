@@ -1,0 +1,2839 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>CPR ACLS 리더 보드</title>
+    <style>
+:root {
+  color-scheme: light;
+  --bg: #f6f7f4;
+  --panel: #ffffff;
+  --ink: #18201d;
+  --muted: #5f6964;
+  --line: #d9ded8;
+  --green: #0f7a55;
+  --green-soft: #e6f3ec;
+  --red: #c33b32;
+  --red-soft: #fae7e5;
+  --amber: #a46108;
+  --amber-soft: #fff0d6;
+  --blue: #2368a2;
+  --blue-soft: #e4f0fa;
+  --shadow: 0 10px 28px rgba(24, 32, 29, 0.09);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+.app-shell {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+.timer-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) 10px 10px;
+  background: rgba(246, 247, 244, 0.96);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+
+.timer-card {
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.timer-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: clamp(30px, 10vw, 48px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.timer-card small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.event-strip {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 9px;
+  box-shadow: var(--shadow);
+}
+
+.event-strip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.event-strip-head small {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.event-timeline {
+  min-height: 162px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.event-timeline.empty {
+  min-height: 78px;
+  overflow-x: hidden;
+}
+
+.timeline-graph {
+  position: relative;
+  height: 160px;
+  margin: 0 18px 0 112px;
+}
+
+.timeline-graph.empty {
+  height: 74px;
+  margin: 0;
+}
+
+.timeline-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 118px;
+  height: 4px;
+  border-radius: 999px;
+  background: #bdc7c0;
+}
+
+.epi-timeline-timer {
+  position: relative;
+  min-height: 28px;
+  margin-top: 8px;
+  border: 1px solid rgba(15, 122, 85, 0.38);
+  border-radius: 8px;
+  background: var(--green-soft);
+  overflow: hidden;
+}
+
+.epi-timeline-timer[hidden] {
+  display: none;
+}
+
+.epi-timeline-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--epi-progress, 0%);
+  max-width: 100%;
+  background: rgba(15, 122, 85, 0.28);
+}
+
+.epi-timeline-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  padding: 5px 8px;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.epi-timeline-label em {
+  font-style: normal;
+}
+
+.epi-timeline-timer.due {
+  border-color: rgba(164, 97, 8, 0.54);
+  background: var(--amber-soft);
+}
+
+.epi-timeline-timer.due .epi-timeline-fill {
+  background: rgba(164, 97, 8, 0.28);
+}
+
+.epi-timeline-timer.due .epi-timeline-label {
+  color: var(--amber);
+}
+
+.epi-timeline-timer.overdue {
+  border-color: rgba(195, 59, 50, 0.58);
+  background: var(--red-soft);
+}
+
+.epi-timeline-timer.overdue .epi-timeline-fill {
+  background: rgba(195, 59, 50, 0.22);
+}
+
+.epi-timeline-timer.overdue .epi-timeline-label {
+  color: var(--red);
+}
+
+.timeline-lane-label {
+  position: absolute;
+  left: -104px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.timeline-lane-label.top {
+  top: 7px;
+}
+
+.timeline-lane-label.rhythm {
+  top: 168px;
+}
+
+.timeline-lane-label.meds {
+  top: 228px;
+}
+
+.timeline-lane-label.procedure {
+  top: 258px;
+}
+
+.scale-control {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.scale-button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.scale-button.active {
+  border-color: #9dbfe0;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.timeline-tick {
+  position: absolute;
+  top: 109px;
+  height: 22px;
+  border-left: 1px solid rgba(95, 105, 100, 0.32);
+}
+
+.timeline-tick span {
+  position: absolute;
+  top: 17px;
+  left: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cycle-bracket {
+  position: absolute;
+  top: 94px;
+  height: 52px;
+  min-width: 22px;
+  border-top: 3px solid rgba(15, 122, 85, 0.72);
+  border-right: 3px solid rgba(15, 122, 85, 0.72);
+  border-bottom: 3px solid rgba(15, 122, 85, 0.72);
+  border-radius: 0 8px 8px 0;
+  pointer-events: none;
+}
+
+.cycle-bracket span {
+  position: absolute;
+  right: 6px;
+  top: 17px;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.timeline-dot {
+  position: absolute;
+  width: 0;
+  transform: translateX(-50%);
+}
+
+.timeline-dot.top {
+  top: 18px;
+}
+
+.timeline-dot.rhythm,
+.timeline-dot.meds,
+.timeline-dot.procedure {
+  top: 142px;
+}
+
+.dot-point {
+  position: absolute;
+  left: 0;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--blue);
+  background: var(--blue);
+  transform: translateX(-50%);
+}
+
+.timeline-dot.top .dot-point {
+  top: 90px;
+}
+
+.timeline-dot.rhythm .dot-point,
+.timeline-dot.meds .dot-point,
+.timeline-dot.procedure .dot-point {
+  top: -34px;
+}
+
+.dot-label {
+  position: absolute;
+  left: var(--label-offset-x, 0);
+  top: var(--label-offset-y, 0);
+  display: inline-block;
+  width: max-content;
+  min-width: 0;
+  max-width: none;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(24, 32, 29, 0.1);
+  visibility: hidden;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-dot.positioned .dot-label {
+  visibility: visible;
+}
+
+.dot-connector {
+  position: absolute;
+  left: 0;
+  top: var(--connector-y, 0);
+  width: var(--connector-length, 0);
+  height: 1px;
+  background: rgba(95, 105, 100, 0.38);
+  transform: rotate(var(--connector-angle, 0));
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+.timeline-dot.rhythm .dot-point,
+.timeline-dot.rhythm-check .dot-point {
+  box-shadow: 0 0 0 2px var(--blue);
+  background: var(--blue);
+}
+
+.timeline-dot.shock .dot-point {
+  box-shadow: 0 0 0 2px var(--red);
+  background: var(--red);
+}
+
+.timeline-dot.medication .dot-point {
+  box-shadow: 0 0 0 2px var(--green);
+  background: var(--green);
+}
+
+.timeline-dot.test .dot-point {
+  box-shadow: 0 0 0 2px #7a55a0;
+  background: #7a55a0;
+}
+
+.timeline-dot.airway .dot-point {
+  box-shadow: 0 0 0 2px #5d6f7f;
+  background: #5d6f7f;
+}
+
+.timeline-dot.compression .dot-point {
+  box-shadow: 0 0 0 2px var(--amber);
+  background: var(--amber);
+}
+
+.timeline-dot.session .dot-point {
+  box-shadow: 0 0 0 2px var(--ink);
+  background: var(--ink);
+}
+
+.timeline-empty {
+  position: absolute;
+  left: 14px;
+  top: 83px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.timeline-graph.empty .timeline-empty {
+  left: 0;
+  top: 22px;
+}
+
+.timer-label,
+.eyebrow {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.cycle.overdue {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  padding: 12px 10px 0;
+}
+
+.status-panel,
+.control-section,
+.session-actions,
+.dev-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.dev-panel {
+  border-color: #d7c6eb;
+  background: #f7f2fb;
+}
+
+.dev-panel[hidden] {
+  display: none;
+}
+
+.dev-panel .ghost-button {
+  margin-top: 8px;
+}
+
+.status-panel h1,
+.section-title h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.status-panel h1 {
+  margin-top: 3px;
+  font-size: 28px;
+}
+
+.status-panel p {
+  margin: 12px 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metronome-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.metronome-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.metronome-button {
+  min-height: 48px;
+  border: 1px solid #9dbfe0;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.metronome-button.active {
+  border-color: #9bcbb9;
+  background: var(--green);
+  color: #ffffff;
+}
+
+.next-actions {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.recommended-actions {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #e6aaa5;
+  border-radius: 8px;
+  background: var(--red-soft);
+}
+
+.recommended-actions[hidden] {
+  display: none;
+}
+
+.recommend-title {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.recommend-button {
+  min-height: 48px;
+  border: 1px solid #d98780;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--red);
+  font-weight: 900;
+  text-align: left;
+  padding: 8px 10px;
+}
+
+.recommend-button.shock {
+  border-color: #d98780;
+  background: var(--red);
+  color: #ffffff;
+}
+
+.recommend-button.medication {
+  border-color: #9bcbb9;
+  background: #ffffff;
+  color: var(--green);
+}
+
+.recommend-button.disabled {
+  color: var(--muted);
+  border-color: var(--line);
+  background: #fff8f7;
+  opacity: 1;
+}
+
+.next-action-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.next-action-list li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.next-action-list strong,
+.next-action-list em {
+  display: block;
+}
+
+.next-action-list strong {
+  font-size: 14px;
+}
+
+.next-action-list em {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-pill.good,
+.status-pill.safe {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.status-pill.neutral {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.status-pill.warn {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-title.compact {
+  margin-bottom: 8px;
+}
+
+.section-title h2 {
+  font-size: 18px;
+}
+
+.section-title.compact h2 {
+  font-size: 15px;
+}
+
+.section-title span {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.button-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.action-button,
+.primary-action,
+.small-button,
+.end-button,
+.ghost-button {
+  min-height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfefd;
+  color: var(--ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.action-button:active,
+.primary-action:active,
+.small-button:active,
+.end-button:active,
+.ghost-button:active {
+  transform: translateY(1px);
+}
+
+.action-button.shockable,
+.action-button.danger,
+.end-button {
+  border-color: #e6aaa5;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.action-button.rosc,
+.action-button.safe,
+.primary-action {
+  border-color: #9bcbb9;
+  background: var(--green);
+  color: #ffffff;
+}
+
+.action-button.announce {
+  width: 100%;
+  margin-bottom: 8px;
+  border-color: #9dbfe0;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.action-button.warning {
+  border-color: #ecc98f;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.primary-action {
+  width: 100%;
+}
+
+.primary-action.full {
+  margin-top: 14px;
+}
+
+.inline-control,
+.quick-note {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.quick-note {
+  grid-template-columns: 1fr auto;
+  margin-top: 8px;
+}
+
+label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+select,
+input {
+  min-height: 48px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 10px;
+}
+
+.small-button {
+  min-width: 76px;
+  padding: 0 14px;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.warning-text {
+  min-height: 20px;
+  margin: 10px 0 0;
+  color: var(--amber);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.event-log {
+  display: grid;
+  gap: 8px;
+  max-height: 430px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.event-log li {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.event-time {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.event-main {
+  min-width: 0;
+}
+
+.event-main strong {
+  display: block;
+}
+
+.event-main span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.session-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.ghost-button {
+  background: transparent;
+  color: var(--muted);
+}
+
+.safety-note {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.summary-dialog {
+  width: min(92vw, 560px);
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(24, 32, 29, 0.3);
+}
+
+.summary-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.summary-dialog form {
+  padding: 16px;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-header h2 {
+  margin: 0;
+}
+
+.icon-close {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.summary-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.metric {
+  min-height: 78px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+button:disabled,
+select:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+@media (min-width: 720px) {
+  .button-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  main {
+    padding-inline: 14px;
+  }
+}
+
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="timer-header" aria-label="CPR timers">
+        <div class="timer-card total">
+          <span class="timer-label">TOTAL CPR</span>
+          <strong id="totalTime">00:00</strong>
+        </div>
+        <div class="timer-card cycle" id="cycleCard">
+          <span class="timer-label">2 MIN CYCLE</span>
+          <strong id="cycleTime">02:00</strong>
+          <small id="cycleMeta">Cycle 0</small>
+        </div>
+        <div class="event-strip" aria-label="Recent event timeline">
+          <div class="event-strip-head">
+            <span class="timer-label">EVENT TIMELINE</span>
+            <small id="timelineCount">0 logged</small>
+          </div>
+          <div class="scale-control" aria-label="Timeline scale">
+            <button class="scale-button active" data-scale="120" type="button">2 min</button>
+            <button class="scale-button" data-scale="360" type="button">6 min</button>
+            <button class="scale-button" data-scale="720" type="button">12 min</button>
+            <button class="scale-button" data-scale="1200" type="button">20 min</button>
+          </div>
+          <div id="eventTimeline" class="event-timeline"></div>
+          <div id="epiTimelineTimer" class="epi-timeline-timer" aria-live="polite" hidden></div>
+        </div>
+      </header>
+
+      <main>
+        <section class="status-panel" aria-label="Current ACLS status">
+          <div>
+            <span class="eyebrow">Current rhythm</span>
+            <h1 id="currentRhythm">Not assessed</h1>
+          </div>
+          <p id="hintText">Start high-quality CPR, attach monitor/defibrillator, give oxygen, and prepare rhythm assessment.</p>
+          <div id="recommendedActions" class="recommended-actions" aria-label="Recommended medication actions"></div>
+          <div class="next-actions" aria-label="Recommended next actions">
+            <div class="section-title compact">
+              <h2>Next actions</h2>
+              <span>ACLS flow aid</span>
+            </div>
+            <ol id="nextActionList" class="next-action-list"></ol>
+          </div>
+          <div class="status-row">
+            <span id="compressionStatus" class="status-pill good">Compressions running</span>
+            <span id="epiStatus" class="status-pill neutral">No epinephrine logged</span>
+          </div>
+          <div class="metronome-row" aria-label="Compression metronome">
+            <button id="metronomeButton" class="metronome-button" type="button">Metronome 110/min</button>
+            <span id="metronomeStatus">Sound off</span>
+          </div>
+          <button id="restartCycle" class="primary-action" type="button">Restart 2 min</button>
+        </section>
+
+        <section id="devPanel" class="dev-panel" hidden aria-label="Development time controls">
+          <div class="section-title">
+            <h2>Dev time controls</h2>
+            <span>?dev=1 only</span>
+          </div>
+          <div class="button-grid">
+            <button class="small-button" data-dev-advance="30" type="button">+30 sec</button>
+            <button class="small-button" data-dev-advance="60" type="button">+1 min</button>
+            <button class="small-button" data-dev-advance="120" type="button">+2 min</button>
+            <button class="small-button" data-dev-advance="300" type="button">+5 min</button>
+          </div>
+          <button id="devResetClock" class="ghost-button" type="button">Reset dev time offset</button>
+        </section>
+
+        <section class="control-section" aria-labelledby="rhythmTitle">
+          <div class="section-title">
+            <h2 id="rhythmTitle">Rhythm assessment</h2>
+            <span>Log during pulse/rhythm check</span>
+          </div>
+          <button id="rhythmCheckButton" class="action-button announce" type="button">리듬평가 시작 / 모두 물러나십시오</button>
+          <div class="button-grid two">
+            <button class="action-button shockable" data-action="rhythm" data-label="VF/pVT" data-note="Shockable rhythm" type="button">VF/pVT</button>
+            <button class="action-button" data-action="rhythm" data-label="PEA" data-note="Non-shockable rhythm" type="button">PEA</button>
+            <button class="action-button" data-action="rhythm" data-label="Asystole" data-note="Non-shockable rhythm" type="button">Asystole</button>
+            <button class="action-button rosc" data-action="rhythm" data-label="ROSC" data-note="Return of spontaneous circulation" type="button">ROSC</button>
+          </div>
+        </section>
+
+        <section class="control-section" aria-labelledby="shockTitle">
+          <div class="section-title">
+            <h2 id="shockTitle">Defibrillation</h2>
+            <span>Shock time is logged immediately</span>
+          </div>
+          <div class="inline-control">
+            <label for="shockEnergy">Energy</label>
+            <select id="shockEnergy">
+              <option value="">Not specified</option>
+              <option>120 J</option>
+              <option>150 J</option>
+              <option>200 J</option>
+              <option>300 J</option>
+              <option>360 J</option>
+            </select>
+            <button id="shockButton" class="action-button danger" type="button">Shock 기록</button>
+          </div>
+        </section>
+
+        <section class="control-section" aria-labelledby="medTitle">
+          <div class="section-title">
+            <h2 id="medTitle">Medication</h2>
+            <span>Administration time log</span>
+          </div>
+          <div class="button-grid">
+            <button class="action-button" data-action="medication" data-label="Epinephrine 1 mg" type="button">Epinephrine 1 mg</button>
+            <button class="action-button" data-action="medication" data-label="Amiodarone 300 mg" type="button">Amio 300</button>
+            <button class="action-button" data-action="medication" data-label="Amiodarone 150 mg" type="button">Amio 150</button>
+            <button class="action-button" data-action="medication" data-label="Lidocaine" type="button">Lidocaine</button>
+          </div>
+          <div class="quick-note">
+            <input id="otherMedication" type="text" inputmode="text" placeholder="Other medication">
+            <button id="otherMedicationButton" class="small-button" type="button">Log</button>
+          </div>
+        </section>
+
+        <section class="control-section" aria-labelledby="testTitle">
+          <div class="section-title">
+            <h2 id="testTitle">Tests / procedures</h2>
+            <span>Record sent or performed</span>
+          </div>
+          <div class="button-grid">
+            <button class="action-button" data-action="test" data-label="ABGA" type="button">ABGA</button>
+            <button class="action-button" data-action="test" data-label="Labs" type="button">Labs</button>
+            <button class="action-button" data-action="test" data-label="EtCO2 check" type="button">EtCO2</button>
+            <button class="action-button" data-action="test" data-label="Airway/intubation" type="button">Airway</button>
+          </div>
+          <div class="quick-note">
+            <input id="otherTest" type="text" inputmode="text" placeholder="Other test/procedure">
+            <button id="otherTestButton" class="small-button" type="button">Log</button>
+          </div>
+        </section>
+
+        <section class="control-section" aria-labelledby="airwayTitle">
+          <div class="section-title">
+            <h2 id="airwayTitle">Airway</h2>
+            <span>Ventilation and ETCO2 log</span>
+          </div>
+          <div class="button-grid">
+            <button class="action-button" data-action="airway" data-label="BVM ventilation" type="button">BVM</button>
+            <button class="action-button" data-action="airway" data-label="Supraglottic airway" type="button">SGA</button>
+            <button class="action-button" data-action="airway" data-label="Intubation" type="button">Intubation</button>
+            <button class="action-button" data-action="airway" data-label="EtCO2 connected" type="button">EtCO2 connected</button>
+          </div>
+          <div class="quick-note">
+            <input id="etco2Value" type="number" inputmode="numeric" min="0" max="120" placeholder="EtCO2 value">
+            <button id="etco2ValueButton" class="small-button" type="button">Log</button>
+          </div>
+        </section>
+
+        <section class="control-section" aria-labelledby="pauseTitle">
+          <div class="section-title">
+            <h2 id="pauseTitle">Compression interruption</h2>
+            <span id="pauseDuration">No active pause</span>
+          </div>
+          <div class="button-grid two">
+            <button id="pauseButton" class="action-button warning" type="button">Pause compressions</button>
+            <button id="resumeButton" class="action-button safe" type="button">Resume compressions</button>
+          </div>
+          <p id="warningText" class="warning-text" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="control-section log-section" aria-labelledby="logTitle">
+          <div class="section-title">
+            <h2 id="logTitle">Event log</h2>
+            <span id="eventCount">0 events</span>
+          </div>
+          <ol id="eventLog" class="event-log"></ol>
+        </section>
+
+        <section class="session-actions">
+          <button id="endButton" class="end-button" type="button">CPR 종료 / Summary</button>
+          <button id="newSessionButton" class="ghost-button" type="button">New session</button>
+          <p class="safety-note">For trained clinical teams. Use with local protocol and clinician judgment; this app is a timing and documentation aid.</p>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="summaryDialog" class="summary-dialog">
+      <form method="dialog">
+        <div class="summary-header">
+          <h2>CPR Summary</h2>
+          <button class="icon-close" value="close" aria-label="Close summary">×</button>
+        </div>
+        <div id="summaryContent" class="summary-content"></div>
+        <button class="primary-action full" value="close">Close</button>
+      </form>
+    </dialog>
+    <script>
+var CPRLogic = (function () {
+  var CYCLE_MS = 120000;
+  var EPINEPHRINE_REDOSING_MS = 240000;
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function pad2(value) {
+    return value < 10 ? "0" + value : String(value);
+  }
+
+  function formatClock(ms) {
+    var totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    var hours = Math.floor(totalSeconds / 3600);
+    var minutes = Math.floor((totalSeconds % 3600) / 60);
+    var seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return hours + ":" + pad2(minutes) + ":" + pad2(seconds);
+    }
+
+    return pad2(minutes) + ":" + pad2(seconds);
+  }
+
+  function createSession(now) {
+    return {
+      startedAt: now,
+      endedAt: null,
+      cycleStartedAt: now,
+      cycleEndedAt: null,
+      cycleCount: 0,
+      status: "running",
+      events: [],
+      pauses: [],
+      activePauseStartedAt: null,
+      lastRhythm: null
+    };
+  }
+
+  function normalizeSession(session, now) {
+    if (!session || !session.startedAt) {
+      return createSession(now);
+    }
+
+    var next = clone(session);
+    next.endedAt = next.endedAt || null;
+    next.cycleStartedAt = next.cycleStartedAt || next.startedAt;
+    next.cycleEndedAt = next.cycleEndedAt || null;
+    next.cycleCount = next.cycleCount || 0;
+    next.status = next.status || "running";
+    next.events = next.events || [];
+    next.pauses = next.pauses || [];
+    next.activePauseStartedAt = next.activePauseStartedAt || null;
+    next.lastRhythm = next.lastRhythm || null;
+    return next;
+  }
+
+  function getElapsedMs(session, now) {
+    var end = session.endedAt || now;
+    return Math.max(0, end - session.startedAt);
+  }
+
+  function getCycleState(session, now) {
+    var cycleNow = session.cycleEndedAt || now;
+    var elapsedMs = Math.max(0, cycleNow - session.cycleStartedAt);
+    var remainingMs = Math.max(0, CYCLE_MS - elapsedMs);
+    return {
+      elapsedMs: elapsedMs,
+      remainingMs: remainingMs,
+      isOverdue: elapsedMs > CYCLE_MS,
+      overdueMs: Math.max(0, elapsedMs - CYCLE_MS),
+      isEnded: session.cycleEndedAt !== null
+    };
+  }
+
+  function eventTime(session, now) {
+    return Math.max(0, now - session.startedAt);
+  }
+
+  function recordEvent(session, now, category, label, notes) {
+    var next = clone(session);
+    next.events.push({
+      id: "evt-" + now + "-" + next.events.length,
+      at: now,
+      timeMs: eventTime(next, now),
+      category: category,
+      label: label,
+      notes: notes || ""
+    });
+
+    if (category === "rhythm") {
+      next.lastRhythm = label;
+    }
+
+    return next;
+  }
+
+  function restartCycle(session, now) {
+    var next = recordEvent(session, now, "cycle", "2 min cycle restarted", "");
+    next.cycleStartedAt = now;
+    next.cycleEndedAt = null;
+    next.cycleCount = (next.cycleCount || 0) + 1;
+    return next;
+  }
+
+  function startCompressionPause(session, now) {
+    if (session.activePauseStartedAt !== null) {
+      return {
+        ok: false,
+        message: "Compression pause is already active.",
+        session: clone(session)
+      };
+    }
+
+    var next = recordEvent(session, now, "compression", "Compression paused", "");
+    next.activePauseStartedAt = now;
+    return { ok: true, message: "", session: next };
+  }
+
+  function resumeCompressionPause(session, now) {
+    if (session.activePauseStartedAt === null) {
+      return {
+        ok: false,
+        message: "No active compression pause.",
+        session: clone(session)
+      };
+    }
+
+    var durationMs = Math.max(0, now - session.activePauseStartedAt);
+    var next = recordEvent(session, now, "compression", "Compression resumed", formatClock(durationMs));
+    next.pauses.push({
+      startAt: session.activePauseStartedAt,
+      endAt: now,
+      durationMs: durationMs
+    });
+    next.activePauseStartedAt = null;
+    return { ok: true, message: "", session: next };
+  }
+
+  function startRhythmCheck(session, now) {
+    if (session.activePauseStartedAt !== null) {
+      return {
+        ok: false,
+        message: "Compression pause is already active.",
+        session: clone(session)
+      };
+    }
+
+    var paused = startCompressionPause(session, now).session;
+    var next = recordEvent(paused, now, "rhythm-check", "Rhythm check started", "Everyone clear");
+    next.cycleEndedAt = now;
+    return { ok: true, message: "", session: next };
+  }
+
+  function completeRhythmAssessment(session, now, rhythm, notes) {
+    var next = recordEvent(session, now, "rhythm", rhythm, notes || "");
+
+    if (next.activePauseStartedAt !== null) {
+      next = resumeCompressionPause(next, now).session;
+    }
+
+    if (rhythm !== "ROSC") {
+      next = restartCycle(next, now);
+    }
+
+    return {
+      ok: true,
+      restartedCycle: rhythm !== "ROSC",
+      session: next
+    };
+  }
+
+  function endSession(session, now) {
+    var next = clone(session);
+
+    if (next.activePauseStartedAt !== null) {
+      next.pauses.push({
+        startAt: next.activePauseStartedAt,
+        endAt: now,
+        durationMs: Math.max(0, now - next.activePauseStartedAt)
+      });
+      next.activePauseStartedAt = null;
+    }
+
+    next = recordEvent(next, now, "session", "CPR ended", "");
+    next.status = "ended";
+    next.endedAt = now;
+    return next;
+  }
+
+  function countEvents(events, category) {
+    var counts = {};
+    for (var i = 0; i < events.length; i += 1) {
+      if (events[i].category === category) {
+        counts[events[i].label] = (counts[events[i].label] || 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  function listEvents(events, category) {
+    var labels = [];
+    for (var i = 0; i < events.length; i += 1) {
+      if (events[i].category === category) {
+        labels.push(events[i].notes ? events[i].label + " (" + events[i].notes + ")" : events[i].label);
+      }
+    }
+    return labels;
+  }
+
+  function countLabel(events, category, label) {
+    var count = 0;
+    for (var i = 0; i < events.length; i += 1) {
+      if (events[i].category === category && events[i].label === label) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  function buildSummary(session, now) {
+    var totalMs = getElapsedMs(session, now);
+    var pauseMs = 0;
+    var longestPauseMs = 0;
+
+    for (var i = 0; i < session.pauses.length; i += 1) {
+      pauseMs += session.pauses[i].durationMs;
+      longestPauseMs = Math.max(longestPauseMs, session.pauses[i].durationMs);
+    }
+
+    var runningMs = Math.max(0, totalMs - pauseMs);
+    var compressionFraction = totalMs === 0 ? 1 : Math.round((runningMs / totalMs) * 100) / 100;
+
+    return {
+      totalMs: totalMs,
+      pauseMs: pauseMs,
+      compressionFraction: compressionFraction,
+      pauseCount: session.pauses.length,
+      longestPauseMs: longestPauseMs,
+      shockCount: countEvents(session.events, "shock")["Shock delivered"] || 0,
+      medicationCounts: countEvents(session.events, "medication"),
+      rhythmCounts: countEvents(session.events, "rhythm"),
+      tests: listEvents(session.events, "test").concat(listEvents(session.events, "airway"))
+    };
+  }
+
+  function buildTimelineModel(session, now, scaleMs) {
+    var elapsedMs = getElapsedMs(session, session.endedAt || now);
+    var totalMs = Math.max(scaleMs, elapsedMs);
+    var cycles = [{ start: 0, end: null }];
+
+    for (var i = 0; i < session.events.length; i += 1) {
+      if (session.events[i].label === "2 min cycle restarted") {
+        if (cycles[cycles.length - 1].end === null) {
+          cycles[cycles.length - 1].end = session.events[i].timeMs;
+        }
+        cycles.push({ start: session.events[i].timeMs, end: null });
+      }
+
+      if (session.events[i].label === "Rhythm check started" && cycles[cycles.length - 1].end === null) {
+        cycles[cycles.length - 1].end = session.events[i].timeMs;
+      }
+    }
+
+    for (var j = 0; j < cycles.length; j += 1) {
+      if (cycles[j].end === null) {
+        cycles[j].end = elapsedMs;
+      }
+    }
+
+    return {
+      totalMs: totalMs,
+      cycles: cycles
+    };
+  }
+
+  function lastEvent(session, category, label) {
+    for (var i = session.events.length - 1; i >= 0; i -= 1) {
+      if (session.events[i].category === category && (!label || session.events[i].label === label)) {
+        return session.events[i];
+      }
+    }
+    return null;
+  }
+
+  function hasEventAfter(session, category, label, referenceEvent) {
+    if (!referenceEvent) {
+      return false;
+    }
+
+    for (var i = session.events.length - 1; i >= 0; i -= 1) {
+      if (session.events[i].id === referenceEvent.id) {
+        return false;
+      }
+      if (session.events[i].category === category && (!label || session.events[i].label === label)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function getEpinephrineDoseTimer(session, now) {
+    var lastEpi = lastEvent(session, "medication", "Epinephrine 1 mg");
+    if (!lastEpi || typeof now !== "number") {
+      return null;
+    }
+
+    var elapsedMs = Math.max(0, getElapsedMs(session, session.endedAt || now) - lastEpi.timeMs);
+    var dueAtMs = lastEpi.timeMs + EPINEPHRINE_REDOSING_MS;
+    var progress = Math.min(1, elapsedMs / EPINEPHRINE_REDOSING_MS);
+
+    return {
+      lastDoseMs: lastEpi.timeMs,
+      dueAtMs: dueAtMs,
+      elapsedMs: elapsedMs,
+      remainingMs: Math.max(0, EPINEPHRINE_REDOSING_MS - elapsedMs),
+      progress: Math.round(progress * 100) / 100,
+      isDue: elapsedMs >= EPINEPHRINE_REDOSING_MS,
+      isOverdue: elapsedMs > EPINEPHRINE_REDOSING_MS
+    };
+  }
+
+  function ordinalSuffix(value) {
+    if (value % 100 >= 11 && value % 100 <= 13) {
+      return "th";
+    }
+    if (value % 10 === 1) {
+      return "st";
+    }
+    if (value % 10 === 2) {
+      return "nd";
+    }
+    if (value % 10 === 3) {
+      return "rd";
+    }
+    return "th";
+  }
+
+  function eventOrdinalKey(event) {
+    if (event.category === "medication" && event.label.indexOf("Amiodarone") === 0) {
+      return event.category + ":Amiodarone";
+    }
+    if (event.category === "medication" && event.label.indexOf("Epinephrine") === 0) {
+      return event.category + ":Epinephrine";
+    }
+    return event.category + ":" + event.label;
+  }
+
+  function formatEventOrdinalLabel(events, index, label) {
+    var event = events[index];
+    if (!event) {
+      return label;
+    }
+
+    var key = eventOrdinalKey(event);
+    var total = 0;
+    var occurrence = 0;
+    for (var i = 0; i < events.length; i += 1) {
+      if (eventOrdinalKey(events[i]) === key) {
+        total += 1;
+        if (i <= index) {
+          occurrence += 1;
+        }
+      }
+    }
+
+    if (total <= 1 || occurrence < 1 || occurrence > 10) {
+      return label;
+    }
+
+    return occurrence + ordinalSuffix(occurrence) + " " + label;
+  }
+
+  function getNextActions(rhythm) {
+    if (rhythm === "VF/pVT") {
+      return [
+        {
+          title: "Shock",
+          body: "Deliver defibrillation when ready, then immediately return to compressions."
+        },
+        {
+          title: "Resume CPR",
+          body: "Continue high-quality CPR for 2 minutes and restart the cycle timer."
+        },
+        {
+          title: "Medication timing",
+          body: "After failed initial shocks, track epinephrine every 4 min. Consider amiodarone or lidocaine for refractory VF/pVT."
+        },
+        {
+          title: "Next check",
+          body: "At 2 minutes, pause briefly for rhythm and pulse check."
+        }
+      ];
+    }
+
+    if (rhythm === "PEA" || rhythm === "Asystole") {
+      return [
+        {
+          title: "Resume CPR",
+          body: "Continue high-quality CPR. Do not shock non-shockable rhythms."
+        },
+        {
+          title: "Epinephrine",
+          body: "Give epinephrine 1 mg IV/IO as soon as feasible, then every 4 min."
+        },
+        {
+          title: "Find reversible cause",
+          body: "Actively look for Hs and Ts while CPR continues."
+        },
+        {
+          title: "Next check",
+          body: "Reassess rhythm every 2 minutes and switch pathway if rhythm becomes shockable."
+        }
+      ];
+    }
+
+    if (rhythm === "ROSC") {
+      return [
+        {
+          title: "Confirm ROSC",
+          body: "Check pulse, blood pressure, ETCO2 rise, and organized rhythm."
+        },
+        {
+          title: "Post-arrest care",
+          body: "Support oxygenation, ventilation, blood pressure, ECG, and temperature strategy per local protocol."
+        },
+        {
+          title: "End CPR record",
+          body: "Use CPR end summary when active resuscitation is stopping."
+        }
+      ];
+    }
+
+    return [
+      {
+        title: "Start CPR",
+        body: "High-quality compressions, oxygen, monitor/defibrillator, and IV/IO preparation."
+      },
+      {
+        title: "Assess rhythm",
+        body: "Choose VF/pVT, PEA, asystole, or ROSC when the rhythm check occurs."
+      },
+      {
+        title: "Minimize pauses",
+        body: "Keep rhythm and pulse checks brief and track any compression interruption."
+      }
+    ];
+  }
+
+  function getRecommendedMedicationActions(session, now) {
+    var actions = [];
+    var shockCount = countLabel(session.events, "shock", "Shock delivered");
+    var epiCount = countLabel(session.events, "medication", "Epinephrine 1 mg");
+    var amio300Count = countLabel(session.events, "medication", "Amiodarone 300 mg");
+    var amio150Count = countLabel(session.events, "medication", "Amiodarone 150 mg");
+    var lidocaineCount = countLabel(session.events, "medication", "Lidocaine");
+    var currentRhythmEvent = lastEvent(session, "rhythm", session.lastRhythm);
+    var hasShockedCurrentRhythm = hasEventAfter(session, "shock", "Shock delivered", currentRhythmEvent);
+    var epiTimer = getEpinephrineDoseTimer(session, now);
+
+    if (epiTimer && epiTimer.isDue) {
+      actions.push({
+        type: "medication",
+        label: "Epinephrine 1 mg",
+        display: epiTimer.isOverdue ? "Epi 1 mg overdue" : "Epi 1 mg IV/IO due again",
+        note: "Repeat epinephrine timing"
+      });
+    }
+
+    if (session.lastRhythm === "VF/pVT") {
+      if (!hasShockedCurrentRhythm) {
+        actions.push({
+          type: "shock",
+          label: "Shock delivered",
+          display: "Shock now",
+          note: "VF/pVT shockable rhythm"
+        });
+      }
+
+      if (epiCount === 0) {
+        actions.push({
+          type: "medication",
+          label: "Epinephrine 1 mg",
+          display: "Consider Epi 1 mg IV/IO now",
+          note: "VF/pVT medication timing"
+        });
+      }
+
+      if (shockCount < 3) {
+        actions.push({
+          type: "info",
+          label: "",
+          display: "Amiodarone after refractory VF/pVT shocks. Current shocks: " + shockCount,
+          note: "",
+          disabled: true
+        });
+        return actions;
+      }
+
+      if (amio300Count === 0 && lidocaineCount === 0) {
+        actions.push({
+          type: "medication",
+          label: "Amiodarone 300 mg",
+          display: "Consider Amiodarone 300 mg IV/IO now",
+          note: "Refractory VF/pVT after shocks"
+        });
+        actions.push({
+          type: "medication",
+          label: "Lidocaine",
+          display: "Consider Lidocaine IV/IO alternative",
+          note: "Alternative antiarrhythmic"
+        });
+        return actions;
+      }
+
+      if (amio300Count > 0 && amio150Count === 0) {
+        actions.push({
+          type: "medication",
+          label: "Amiodarone 150 mg",
+          display: "Consider Amiodarone 150 mg IV/IO",
+          note: "Refractory VF/pVT additional dose"
+        });
+      }
+
+      if (lidocaineCount === 0) {
+        actions.push({
+          type: "medication",
+          label: "Lidocaine",
+          display: "Consider Lidocaine IV/IO alternative",
+          note: "Alternative antiarrhythmic"
+        });
+      }
+
+      return actions;
+    }
+
+    if (session.lastRhythm === "PEA" || session.lastRhythm === "Asystole") {
+      if (epiCount === 0) {
+        actions.push({
+          type: "medication",
+          label: "Epinephrine 1 mg",
+          display: "Consider Epi 1 mg IV/IO now",
+          note: "Non-shockable rhythm"
+        });
+      }
+      actions.push({
+        type: "info",
+        label: "",
+        display: "Do not shock. Amiodarone is not for PEA/asystole.",
+        note: "",
+        disabled: true
+      });
+      return actions;
+    }
+
+    return actions;
+  }
+
+  return {
+    CYCLE_MS: CYCLE_MS,
+    createSession: createSession,
+    normalizeSession: normalizeSession,
+    formatClock: formatClock,
+    getElapsedMs: getElapsedMs,
+    getCycleState: getCycleState,
+    getEpinephrineDoseTimer: getEpinephrineDoseTimer,
+    formatEventOrdinalLabel: formatEventOrdinalLabel,
+    recordEvent: recordEvent,
+    restartCycle: restartCycle,
+    startCompressionPause: startCompressionPause,
+    resumeCompressionPause: resumeCompressionPause,
+    startRhythmCheck: startRhythmCheck,
+    completeRhythmAssessment: completeRhythmAssessment,
+    endSession: endSession,
+    buildSummary: buildSummary,
+    buildTimelineModel: buildTimelineModel,
+    lastEvent: lastEvent,
+    getNextActions: getNextActions,
+    getRecommendedMedicationActions: getRecommendedMedicationActions
+  };
+}());
+
+var CPRTimelineLayout = (function () {
+  var LABEL_GAP_PX = 8;
+  var SIDE_OFFSET_PX = 12;
+
+  function createTimelinePlacementRows() {
+    return [[], [], []];
+  }
+
+  function createMeasuredTimelineRows() {
+    return [[], [], []];
+  }
+
+  function estimateTimelineLabelWidth(label) {
+    return Math.max(76, String(label).length * 7 + 16);
+  }
+
+  function dotX(timeMs, totalMs, minWidth) {
+    return (timeMs / Math.max(1, totalMs)) * minWidth;
+  }
+
+  function labelBounds(timeMs, totalMs, minWidth, labelWidth, side) {
+    var x = dotX(timeMs, totalMs, minWidth);
+    if (side === "left") {
+      return { start: x - labelWidth - SIDE_OFFSET_PX, end: x - SIDE_OFFSET_PX };
+    }
+    if (side === "right") {
+      return { start: x + SIDE_OFFSET_PX, end: x + SIDE_OFFSET_PX + labelWidth };
+    }
+    return { start: x - labelWidth / 2, end: x + labelWidth / 2 };
+  }
+
+  function boundsOverlap(a, b) {
+    return a.start < b.end + LABEL_GAP_PX && b.start < a.end + LABEL_GAP_PX;
+  }
+
+  function boundsWithinGraph(bounds, minWidth) {
+    return bounds.start >= 0 && bounds.end <= minWidth;
+  }
+
+  function rowIsClear(row, bounds, ignore) {
+    for (var i = 0; i < row.length; i += 1) {
+      if (row[i] !== ignore && boundsOverlap(row[i].bounds, bounds)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function applySide(placement, side, totalMs, minWidth) {
+    placement.side = side;
+    placement.bounds = labelBounds(placement.timeMs, totalMs, minWidth, placement.width, side);
+    if (placement.dot) {
+      if (side === "center") {
+        placement.dot.removeAttribute("data-side");
+      } else {
+        placement.dot.setAttribute("data-side", side);
+      }
+    }
+  }
+
+  function trySplitCenter(row, timeMs, totalMs, minWidth, width, dot) {
+    for (var i = 0; i < row.length; i += 1) {
+      var existing = row[i];
+      if (existing.side !== "center") {
+        continue;
+      }
+
+      var existingLeft = labelBounds(existing.timeMs, totalMs, minWidth, existing.width, "left");
+      var nextRight = labelBounds(timeMs, totalMs, minWidth, width, "right");
+      if (boundsWithinGraph(existingLeft, minWidth) && boundsWithinGraph(nextRight, minWidth) && rowIsClear(row, existingLeft, existing) && rowIsClear(row, nextRight, existing) && !boundsOverlap(existingLeft, nextRight)) {
+        applySide(existing, "left", totalMs, minWidth);
+        return {
+          row: null,
+          side: "right",
+          bounds: nextRight,
+          dot: dot,
+          timeMs: timeMs,
+          width: width
+        };
+      }
+    }
+    return null;
+  }
+
+  function allocateTimelinePlacement(rows, timeMs, totalMs, minWidth, label, dot) {
+    var width = estimateTimelineLabelWidth(label);
+    var sides = ["center", "right", "left"];
+
+    for (var rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+      var row = rows[rowIndex];
+      for (var sideIndex = 0; sideIndex < sides.length; sideIndex += 1) {
+        var side = sides[sideIndex];
+        var bounds = labelBounds(timeMs, totalMs, minWidth, width, side);
+        if (boundsWithinGraph(bounds, minWidth) && rowIsClear(row, bounds, null)) {
+          var placement = {
+            row: rowIndex,
+            side: side,
+            bounds: bounds,
+            dot: dot || null,
+            timeMs: timeMs,
+            width: width
+          };
+          row.push(placement);
+          return placement;
+        }
+      }
+
+      var split = trySplitCenter(row, timeMs, totalMs, minWidth, width, dot || null);
+      if (split && boundsWithinGraph(split.bounds, minWidth)) {
+        split.row = rowIndex;
+        row.push(split);
+        return split;
+      }
+    }
+
+    var fallbackSide = timeMs > totalMs / 2 ? "left" : "right";
+    var fallbackBounds = labelBounds(timeMs, totalMs, minWidth, width, fallbackSide);
+    var fallback = {
+      row: rows.length - 1,
+      side: fallbackSide,
+      bounds: fallbackBounds,
+      dot: dot || null,
+      timeMs: timeMs,
+      width: width
+    };
+    rows[rows.length - 1].push(fallback);
+    return fallback;
+  }
+
+  function measuredBounds(labelLeft, width) {
+    return { start: labelLeft, end: labelLeft + width };
+  }
+
+  function measuredRowIsClear(row, bounds) {
+    for (var i = 0; i < row.length; i += 1) {
+      if (boundsOverlap(row[i].bounds, bounds)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function measuredCandidates(dotPosition, width, graphWidth) {
+    var padding = 8;
+    var centered = dotPosition - width / 2;
+    var right = dotPosition + SIDE_OFFSET_PX;
+    var left = dotPosition - width - SIDE_OFFSET_PX;
+    var nearStart = centered < padding;
+    var nearEnd = centered + width > graphWidth - padding;
+    var values = [];
+
+    if (nearStart) {
+      values.push(right, centered, left);
+    } else if (nearEnd) {
+      values.push(left, centered, right);
+    } else {
+      values.push(centered, right, left);
+    }
+
+    for (var distance = 24; distance <= 240; distance += 24) {
+      values.push(centered + distance);
+      values.push(centered - distance);
+    }
+
+    var unique = [];
+    var seen = {};
+    for (var i = 0; i < values.length; i += 1) {
+      var clamped = Math.max(padding, Math.min(graphWidth - width - padding, values[i]));
+      var key = Math.round(clamped);
+      if (!seen[key]) {
+        seen[key] = true;
+        unique.push(clamped);
+      }
+    }
+    return unique;
+  }
+
+  function allocateMeasuredTimelineLabel(rows, dotPosition, width, graphWidth) {
+    var candidates = measuredCandidates(dotPosition, width, graphWidth);
+
+    for (var rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+      for (var i = 0; i < candidates.length; i += 1) {
+        var bounds = measuredBounds(candidates[i], width);
+        if (measuredRowIsClear(rows[rowIndex], bounds)) {
+          var placement = {
+            row: rowIndex,
+            dotX: dotPosition,
+            labelLeft: candidates[i],
+            width: width,
+            bounds: bounds
+          };
+          rows[rowIndex].push(placement);
+          return placement;
+        }
+      }
+    }
+
+    var fallbackLeft = candidates[candidates.length - 1];
+    var fallback = {
+      row: rows.length - 1,
+      dotX: dotPosition,
+      labelLeft: fallbackLeft,
+      width: width,
+      bounds: measuredBounds(fallbackLeft, width)
+    };
+    rows[rows.length - 1].push(fallback);
+    return fallback;
+  }
+
+  return {
+    createTimelinePlacementRows: createTimelinePlacementRows,
+    createMeasuredTimelineRows: createMeasuredTimelineRows,
+    estimateTimelineLabelWidth: estimateTimelineLabelWidth,
+    allocateTimelinePlacement: allocateTimelinePlacement,
+    allocateMeasuredTimelineLabel: allocateMeasuredTimelineLabel
+  };
+}());
+
+    </script>
+    <script>
+(function () {
+  var storageKey = "cpr-acls-session-v1";
+  var logic = window.CPRLogic;
+  var timelineLayout = window.CPRTimelineLayout;
+  var devMode = new URLSearchParams(window.location.search).get("dev") === "1";
+  var devOffsetMs = 0;
+  var now = function () {
+    return Date.now() + devOffsetMs;
+  };
+  var session = loadSession();
+  var warningTimer = null;
+  var timelineScaleSeconds = 120;
+  var followLatestTimeline = true;
+  var lastRenderedEventCount = -1;
+  var metronomeBpm = 110;
+  var metronomeTimer = null;
+  var metronomeAudioContext = null;
+  var metronomeEnabled = false;
+
+  var els = {
+    totalTime: document.getElementById("totalTime"),
+    cycleTime: document.getElementById("cycleTime"),
+    cycleMeta: document.getElementById("cycleMeta"),
+    cycleCard: document.getElementById("cycleCard"),
+    timelineCount: document.getElementById("timelineCount"),
+    eventTimeline: document.getElementById("eventTimeline"),
+    epiTimelineTimer: document.getElementById("epiTimelineTimer"),
+    currentRhythm: document.getElementById("currentRhythm"),
+    hintText: document.getElementById("hintText"),
+    recommendedActions: document.getElementById("recommendedActions"),
+    nextActionList: document.getElementById("nextActionList"),
+    devPanel: document.getElementById("devPanel"),
+    devResetClock: document.getElementById("devResetClock"),
+    rhythmCheckButton: document.getElementById("rhythmCheckButton"),
+    compressionStatus: document.getElementById("compressionStatus"),
+    epiStatus: document.getElementById("epiStatus"),
+    metronomeButton: document.getElementById("metronomeButton"),
+    metronomeStatus: document.getElementById("metronomeStatus"),
+    restartCycle: document.getElementById("restartCycle"),
+    shockEnergy: document.getElementById("shockEnergy"),
+    shockButton: document.getElementById("shockButton"),
+    otherMedication: document.getElementById("otherMedication"),
+    otherMedicationButton: document.getElementById("otherMedicationButton"),
+    otherTest: document.getElementById("otherTest"),
+    otherTestButton: document.getElementById("otherTestButton"),
+    etco2Value: document.getElementById("etco2Value"),
+    etco2ValueButton: document.getElementById("etco2ValueButton"),
+    pauseButton: document.getElementById("pauseButton"),
+    resumeButton: document.getElementById("resumeButton"),
+    pauseDuration: document.getElementById("pauseDuration"),
+    warningText: document.getElementById("warningText"),
+    eventLog: document.getElementById("eventLog"),
+    eventCount: document.getElementById("eventCount"),
+    endButton: document.getElementById("endButton"),
+    newSessionButton: document.getElementById("newSessionButton"),
+    summaryDialog: document.getElementById("summaryDialog"),
+    summaryContent: document.getElementById("summaryContent")
+  };
+
+  function loadSession() {
+    try {
+      var raw = window.localStorage.getItem(storageKey);
+      if (!raw) {
+        return logic.createSession(now());
+      }
+      return logic.normalizeSession(JSON.parse(raw), now());
+    } catch (error) {
+      return logic.createSession(now());
+    }
+  }
+
+  function saveSession() {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(session));
+    } catch (error) {
+      // iOS may restrict localStorage for files opened directly from Files.
+    }
+  }
+
+  function setSession(next) {
+    session = next;
+    saveSession();
+    render();
+  }
+
+  function showWarning(message) {
+    els.warningText.textContent = message;
+    if (warningTimer) {
+      window.clearTimeout(warningTimer);
+    }
+    warningTimer = window.setTimeout(function () {
+      els.warningText.textContent = "";
+    }, 2800);
+  }
+
+  function rhythmHint(rhythm) {
+    if (rhythm === "VF/pVT") {
+      return "Shockable rhythm: defibrillate when ready, resume CPR immediately, continue 2-minute cycles, consider epinephrine after failed initial shocks and antiarrhythmic for refractory VF/pVT.";
+    }
+
+    if (rhythm === "PEA" || rhythm === "Asystole") {
+      return "Non-shockable rhythm: resume CPR, give epinephrine as soon as feasible, reassess every 2 minutes, and treat reversible causes.";
+    }
+
+    if (rhythm === "ROSC") {
+      return "ROSC recorded: transition toward post-cardiac arrest care and review whether CPR should end.";
+    }
+
+    return "Start high-quality CPR, attach monitor/defibrillator, give oxygen, and prepare rhythm assessment.";
+  }
+
+  function record(category, label, notes) {
+    if (session.status === "ended") {
+      showWarning("Session ended. Start a new session to log more events.");
+      return;
+    }
+    setSession(logic.recordEvent(session, now(), category, label, notes || ""));
+  }
+
+  function addActionListeners() {
+    if (devMode) {
+      els.devPanel.hidden = false;
+      var advanceButtons = document.querySelectorAll("[data-dev-advance]");
+      for (var d = 0; d < advanceButtons.length; d += 1) {
+        advanceButtons[d].addEventListener("click", function (event) {
+          devOffsetMs += parseInt(event.currentTarget.getAttribute("data-dev-advance"), 10) * 1000;
+          render();
+        });
+      }
+      els.devResetClock.addEventListener("click", function () {
+        devOffsetMs = 0;
+        render();
+      });
+    }
+
+    var actionButtons = document.querySelectorAll("[data-action]");
+    for (var i = 0; i < actionButtons.length; i += 1) {
+      actionButtons[i].addEventListener("click", function (event) {
+        var button = event.currentTarget;
+        var action = button.getAttribute("data-action");
+        if (action === "rhythm") {
+          completeRhythm(button.getAttribute("data-label"), button.getAttribute("data-note") || "");
+          return;
+        }
+        record(action, button.getAttribute("data-label"), button.getAttribute("data-note") || "");
+      });
+    }
+
+    var scaleButtons = document.querySelectorAll("[data-scale]");
+    for (var s = 0; s < scaleButtons.length; s += 1) {
+      scaleButtons[s].addEventListener("click", function (event) {
+        var value = parseInt(event.currentTarget.getAttribute("data-scale"), 10);
+        timelineScaleSeconds = value;
+        followLatestTimeline = true;
+        updateScaleButtons();
+        renderTimeline(true);
+      });
+    }
+
+    els.eventTimeline.addEventListener("scroll", function () {
+      var distanceFromEnd = els.eventTimeline.scrollWidth - els.eventTimeline.clientWidth - els.eventTimeline.scrollLeft;
+      followLatestTimeline = distanceFromEnd < 28;
+    });
+
+    els.rhythmCheckButton.addEventListener("click", function () {
+      if (session.status === "ended") {
+        showWarning("Session ended. Start a new session to assess rhythm.");
+        return;
+      }
+      stopMetronome();
+      var result = logic.startRhythmCheck(session, now());
+      if (!result.ok) {
+        showWarning("Compression pause is already active.");
+        return;
+      }
+      setSession(result.session);
+    });
+
+    els.restartCycle.addEventListener("click", function () {
+      if (session.status === "ended") {
+        showWarning("Session ended. Start a new session to restart timing.");
+        return;
+      }
+      setSession(logic.restartCycle(session, now()));
+    });
+
+    els.metronomeButton.addEventListener("click", function () {
+      if (metronomeEnabled) {
+        stopMetronome();
+        return;
+      }
+      startMetronome();
+    });
+
+    els.shockButton.addEventListener("click", function () {
+      record("shock", "Shock delivered", els.shockEnergy.value);
+    });
+
+    els.otherMedicationButton.addEventListener("click", function () {
+      var value = els.otherMedication.value.trim();
+      if (!value) {
+        showWarning("Enter a medication name first.");
+        return;
+      }
+      record("medication", value, "Other medication");
+      els.otherMedication.value = "";
+    });
+
+    els.otherTestButton.addEventListener("click", function () {
+      var value = els.otherTest.value.trim();
+      if (!value) {
+        showWarning("Enter a test or procedure first.");
+        return;
+      }
+      record("test", value, "Other");
+      els.otherTest.value = "";
+    });
+
+    els.etco2ValueButton.addEventListener("click", function () {
+      var value = els.etco2Value.value.trim();
+      if (!value) {
+        showWarning("Enter an EtCO2 value first.");
+        return;
+      }
+      record("airway", "EtCO2 value", value + " mmHg");
+      els.etco2Value.value = "";
+    });
+
+    els.pauseButton.addEventListener("click", function () {
+      if (session.status === "ended") {
+        showWarning("Session ended. Start a new session to track pauses.");
+        return;
+      }
+      stopMetronome();
+      var result = logic.startCompressionPause(session, now());
+      if (!result.ok) {
+        showWarning("Compression pause is already active.");
+        return;
+      }
+      setSession(result.session);
+    });
+
+    els.resumeButton.addEventListener("click", function () {
+      if (session.status === "ended") {
+        showWarning("Session ended. Start a new session to track pauses.");
+        return;
+      }
+      var result = logic.resumeCompressionPause(session, now());
+      if (!result.ok) {
+        showWarning("No active compression pause.");
+        return;
+      }
+      setSession(result.session);
+    });
+
+    els.endButton.addEventListener("click", function () {
+      if (session.status === "ended") {
+        showSummary();
+        return;
+      }
+      if (window.confirm("End CPR and calculate summary?")) {
+        stopMetronome();
+        setSession(logic.endSession(session, now()));
+        showSummary();
+      }
+    });
+
+    els.newSessionButton.addEventListener("click", function () {
+      if (window.confirm("Start a new CPR session and clear this log?")) {
+        stopMetronome();
+        try {
+          window.localStorage.removeItem(storageKey);
+        } catch (error) {
+          // Continue even when localStorage is unavailable on local iPhone files.
+        }
+        session = logic.createSession(now());
+        saveSession();
+        render();
+      }
+    });
+  }
+
+  function ensureMetronomeAudioContext() {
+    var AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextConstructor) {
+      return null;
+    }
+    if (!metronomeAudioContext) {
+      metronomeAudioContext = new AudioContextConstructor();
+    }
+    if (metronomeAudioContext.state === "suspended" && metronomeAudioContext.resume) {
+      metronomeAudioContext.resume();
+    }
+    return metronomeAudioContext;
+  }
+
+  function playMetronomeTick() {
+    var audioContext = ensureMetronomeAudioContext();
+    if (!audioContext) {
+      stopMetronome();
+      showWarning("Audio is not available in this browser.");
+      return;
+    }
+
+    var oscillator = audioContext.createOscillator();
+    var gain = audioContext.createGain();
+    var startAt = audioContext.currentTime;
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(880, startAt);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.32, startAt + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.07);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + 0.075);
+  }
+
+  function startMetronome() {
+    if (session.status === "ended") {
+      showWarning("Session ended. Start a new session to use the metronome.");
+      return;
+    }
+    if (session.activePauseStartedAt !== null) {
+      showWarning("Resume compressions before starting the metronome.");
+      return;
+    }
+    if (metronomeEnabled) {
+      return;
+    }
+
+    metronomeEnabled = true;
+    playMetronomeTick();
+    if (!metronomeEnabled) {
+      return;
+    }
+    metronomeTimer = window.setInterval(playMetronomeTick, 60000 / metronomeBpm);
+    renderMetronome();
+  }
+
+  function stopMetronome() {
+    if (metronomeTimer) {
+      window.clearInterval(metronomeTimer);
+      metronomeTimer = null;
+    }
+    metronomeEnabled = false;
+    renderMetronome();
+  }
+
+  function completeRhythm(label, notes) {
+    if (session.status === "ended") {
+      showWarning("Session ended. Start a new session to log rhythm.");
+      return;
+    }
+    setSession(logic.completeRhythmAssessment(session, now(), label, notes).session);
+  }
+
+  function updateScaleButtons() {
+    var buttons = document.querySelectorAll("[data-scale]");
+    for (var i = 0; i < buttons.length; i += 1) {
+      var isActive = parseInt(buttons[i].getAttribute("data-scale"), 10) === timelineScaleSeconds;
+      buttons[i].classList.toggle("active", isActive);
+    }
+  }
+
+  function renderTimers(currentNow) {
+    var displayNow = session.endedAt || currentNow;
+    var elapsedMs = logic.getElapsedMs(session, displayNow);
+    var cycle = logic.getCycleState(session, displayNow);
+    els.totalTime.textContent = logic.formatClock(elapsedMs);
+
+    if (cycle.isOverdue) {
+      els.cycleTime.textContent = "+" + logic.formatClock(cycle.overdueMs);
+      els.cycleCard.classList.add("overdue");
+    } else {
+      els.cycleTime.textContent = logic.formatClock(cycle.remainingMs);
+      els.cycleCard.classList.remove("overdue");
+    }
+
+    els.cycleMeta.textContent = "Cycle " + session.cycleCount + (cycle.isEnded ? " ended" : "");
+
+    if (session.activePauseStartedAt !== null) {
+      els.pauseDuration.textContent = "Active pause " + logic.formatClock(displayNow - session.activePauseStartedAt);
+    } else {
+      els.pauseDuration.textContent = session.pauses.length + " pause(s) logged";
+    }
+  }
+
+  function renderStatus(currentNow) {
+    els.currentRhythm.textContent = session.lastRhythm || "Not assessed";
+    els.hintText.textContent = rhythmHint(session.lastRhythm);
+    renderNextActions();
+    renderRecommendedActions(currentNow);
+
+    if (session.activePauseStartedAt !== null) {
+      els.compressionStatus.textContent = "Compressions paused";
+      els.compressionStatus.className = "status-pill warn";
+    } else {
+      els.compressionStatus.textContent = "Compressions running";
+      els.compressionStatus.className = "status-pill good";
+    }
+
+    var lastEpi = logic.lastEvent(session, "medication", "Epinephrine 1 mg");
+    if (lastEpi) {
+      els.epiStatus.textContent = "Last epi " + logic.formatClock(logic.getElapsedMs(session, currentNow) - lastEpi.timeMs) + " ago";
+      els.epiStatus.className = "status-pill neutral";
+    } else {
+      els.epiStatus.textContent = "No epinephrine logged";
+      els.epiStatus.className = "status-pill neutral";
+    }
+  }
+
+  function renderMetronome() {
+    var unavailable = session.status === "ended" || session.activePauseStartedAt !== null;
+    if (unavailable && metronomeEnabled) {
+      stopMetronome();
+      return;
+    }
+
+    els.metronomeButton.disabled = unavailable;
+    els.metronomeButton.classList.toggle("active", metronomeEnabled);
+    els.metronomeButton.setAttribute("aria-pressed", metronomeEnabled ? "true" : "false");
+
+    if (session.status === "ended") {
+      els.metronomeStatus.textContent = "Session ended";
+      els.metronomeButton.textContent = "Metronome 110/min";
+      return;
+    }
+    if (session.activePauseStartedAt !== null) {
+      els.metronomeStatus.textContent = "Stopped for pause";
+      els.metronomeButton.textContent = "Metronome 110/min";
+      return;
+    }
+
+    els.metronomeStatus.textContent = metronomeEnabled ? "Sound on at 110/min" : "Sound off";
+    els.metronomeButton.textContent = metronomeEnabled ? "Stop metronome" : "Metronome 110/min";
+  }
+
+  function renderRecommendedActions(currentNow) {
+    var actions = logic.getRecommendedMedicationActions(session, currentNow);
+    els.recommendedActions.innerHTML = "";
+
+    if (actions.length === 0 || session.status === "ended") {
+      els.recommendedActions.hidden = true;
+      return;
+    }
+
+    els.recommendedActions.hidden = false;
+    var title = document.createElement("span");
+    title.className = "recommend-title";
+    title.textContent = "Recommended medication";
+    els.recommendedActions.appendChild(title);
+
+    for (var i = 0; i < actions.length; i += 1) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = actions[i].disabled ? "recommend-button disabled" : "recommend-button " + actions[i].type;
+      button.textContent = actions[i].display;
+      button.setAttribute("data-type", actions[i].type);
+      button.setAttribute("data-label", actions[i].label);
+      button.setAttribute("data-note", actions[i].note);
+      button.disabled = !!actions[i].disabled;
+      if (!actions[i].disabled) {
+        button.addEventListener("click", function (event) {
+          event.currentTarget.disabled = true;
+          var type = event.currentTarget.getAttribute("data-type");
+          var label = event.currentTarget.getAttribute("data-label");
+          var note = event.currentTarget.getAttribute("data-note");
+          if (type === "shock") {
+            record("shock", label, note);
+            return;
+          }
+          record("medication", label, note);
+        });
+      }
+      els.recommendedActions.appendChild(button);
+    }
+  }
+
+  function eventCategoryLabel(category) {
+    var map = {
+      rhythm: "Rhythm",
+      "rhythm-check": "Rhythm check",
+      shock: "Shock",
+      medication: "Medication",
+      test: "Test",
+      airway: "Airway",
+      compression: "Compression",
+      cycle: "Cycle",
+      session: "Session"
+    };
+    return map[category] || category;
+  }
+
+  function renderNextActions() {
+    var actions = logic.getNextActions(session.lastRhythm);
+    els.nextActionList.innerHTML = "";
+
+    for (var i = 0; i < actions.length; i += 1) {
+      var item = document.createElement("li");
+      item.innerHTML = '<span class="step-number">' + (i + 1) + '</span><span><strong>' + escapeHtml(actions[i].title) + '</strong><em>' + escapeHtml(actions[i].body) + "</em></span>";
+      els.nextActionList.appendChild(item);
+    }
+  }
+
+  function timelineShortLabel(event) {
+    var labelMap = {
+      "Epinephrine 1 mg": "Epi",
+      "Amiodarone 300 mg": "Amio 300",
+      "Amiodarone 150 mg": "Amio 150",
+      "Shock delivered": "Shock",
+      "BVM ventilation": "BVM",
+      "Supraglottic airway": "SGA",
+      "EtCO2 connected": "EtCO2",
+      "EtCO2 value": "EtCO2",
+      "Compression paused": "Pause",
+      "Compression resumed": "Resume",
+      "Rhythm check started": "Rhythm check",
+      "2 min cycle restarted": "2 min"
+    };
+    return labelMap[event.label] || event.label;
+  }
+
+  function renderTimeline(forceFollow) {
+    var currentNow = session.endedAt || now();
+    var scaleMs = timelineScaleSeconds * 1000;
+    var timelineModel = logic.buildTimelineModel(session, currentNow, scaleMs);
+    var totalMs = timelineModel.totalMs;
+    var minWidth = Math.max(680, Math.ceil(totalMs / scaleMs) * 720);
+    var shouldFollow = forceFollow || followLatestTimeline || session.events.length !== lastRenderedEventCount;
+    els.eventTimeline.innerHTML = "";
+    els.eventTimeline.className = session.events.length === 0 ? "event-timeline empty" : "event-timeline";
+    els.eventTimeline.style.minHeight = "";
+    els.timelineCount.textContent = session.events.length + " logged";
+
+    var graph = document.createElement("div");
+    if (session.events.length === 0) {
+      graph.className = "timeline-graph empty";
+      var empty = document.createElement("div");
+      empty.className = "timeline-empty";
+      empty.textContent = "No events yet";
+      graph.appendChild(empty);
+      els.eventTimeline.appendChild(graph);
+      lastRenderedEventCount = session.events.length;
+      return;
+    }
+
+    graph.className = "timeline-graph";
+    graph.style.minWidth = minWidth + "px";
+    var activeLanes = visibleTimelineLanes(session.events);
+    var graphHeight = timelineGraphHeight(activeLanes);
+    graph.style.height = graphHeight + "px";
+    els.eventTimeline.style.minHeight = (graphHeight + 2) + "px";
+    graph.innerHTML = '<div class="timeline-bar"></div>';
+    renderTimelineLaneLabels(graph, activeLanes);
+    renderScaleTicks(graph, totalMs, scaleMs);
+    renderCycleBrackets(graph, totalMs, timelineModel.cycles);
+
+    for (var i = 0; i < session.events.length; i += 1) {
+      renderTimelineEvent(graph, session.events[i], i, totalMs);
+    }
+
+    els.eventTimeline.appendChild(graph);
+    positionTimelineLabels(graph);
+    lastRenderedEventCount = session.events.length;
+
+    if (shouldFollow) {
+      window.requestAnimationFrame(function () {
+        els.eventTimeline.scrollLeft = els.eventTimeline.scrollWidth;
+      });
+    }
+  }
+
+  function renderScaleTicks(graph, totalMs, scaleMs) {
+    for (var tickMs = 0; tickMs <= totalMs + 1; tickMs += scaleMs / 4) {
+      var tick = document.createElement("div");
+      tick.className = "timeline-tick";
+      tick.style.left = percent(tickMs, totalMs);
+      tick.innerHTML = "<span>" + logic.formatClock(tickMs) + "</span>";
+      graph.appendChild(tick);
+    }
+  }
+
+  function renderCycleBrackets(graph, totalMs, cycles) {
+    for (var j = 0; j < cycles.length; j += 1) {
+      var start = cycles[j].start;
+      var end = cycles[j].end;
+      if (end <= start) {
+        continue;
+      }
+
+      var bracket = document.createElement("div");
+      bracket.className = "cycle-bracket";
+      bracket.style.left = percent(start, totalMs);
+      bracket.style.width = percent(end - start, totalMs);
+      bracket.innerHTML = "<span>Cycle " + (j + 1) + "</span>";
+      graph.appendChild(bracket);
+    }
+  }
+
+  function renderEpinephrineTimelineTimer(currentNow) {
+    var epiTimer = logic.getEpinephrineDoseTimer(session, currentNow);
+    if (!epiTimer) {
+      els.epiTimelineTimer.hidden = true;
+      els.epiTimelineTimer.innerHTML = "";
+      return;
+    }
+
+    var statusClass = epiTimer.isOverdue ? " overdue" : epiTimer.isDue ? " due" : "";
+    var statusText = "Next epi " + logic.formatClock(epiTimer.remainingMs);
+    if (epiTimer.isOverdue) {
+      statusText = "Epi overdue +" + logic.formatClock(epiTimer.elapsedMs - (epiTimer.dueAtMs - epiTimer.lastDoseMs));
+    } else if (epiTimer.isDue) {
+      statusText = "Epi due now";
+    }
+
+    els.epiTimelineTimer.hidden = false;
+    els.epiTimelineTimer.className = "epi-timeline-timer" + statusClass;
+    els.epiTimelineTimer.style.setProperty("--epi-progress", Math.round(epiTimer.progress * 100) + "%");
+    els.epiTimelineTimer.innerHTML = '<span class="epi-timeline-fill"></span><span class="epi-timeline-label"><strong>Epinephrine</strong><em>' + escapeHtml(statusText) + "</em></span>";
+    els.epiTimelineTimer.setAttribute("aria-label", statusText);
+  }
+
+  function visibleTimelineLanes(events) {
+    var present = {
+      top: false,
+      rhythm: false,
+      meds: false,
+      procedure: false
+    };
+
+    for (var i = 0; i < events.length; i += 1) {
+      if (events[i].category !== "cycle") {
+        present[timelineLane(events[i])] = true;
+      }
+    }
+
+    var lanes = [];
+    var order = ["top", "rhythm", "meds", "procedure"];
+    for (var j = 0; j < order.length; j += 1) {
+      if (present[order[j]]) {
+        lanes.push(order[j]);
+      }
+    }
+    return lanes;
+  }
+
+  function timelineGraphHeight(activeLanes) {
+    var height = 160;
+    if (activeLanes.indexOf("rhythm") !== -1) {
+      height = Math.max(height, 226);
+    }
+    if (activeLanes.indexOf("meds") !== -1) {
+      height = Math.max(height, 260);
+    }
+    if (activeLanes.indexOf("procedure") !== -1) {
+      height = Math.max(height, 320);
+    }
+    return height;
+  }
+
+  function renderTimelineLaneLabels(graph, activeLanes) {
+    for (var i = 0; i < activeLanes.length; i += 1) {
+      var lane = activeLanes[i];
+      var label = document.createElement("div");
+      label.className = "timeline-lane-label " + lane;
+      label.textContent = timelineLaneTitle(lane);
+      graph.appendChild(label);
+    }
+  }
+
+  function timelineLaneTitle(lane) {
+    if (lane === "top") {
+      return "Compression";
+    }
+    if (lane === "meds") {
+      return "Meds";
+    }
+    if (lane === "procedure") {
+      return "Tests / procedures";
+    }
+    return "Rhythm";
+  }
+
+  function renderTimelineEvent(graph, event, index, totalMs) {
+    if (event.category === "cycle") {
+      return;
+    }
+
+    var dot = document.createElement("div");
+    var lane = timelineLane(event);
+    var labelText = logic.formatClock(event.timeMs) + " - " + logic.formatEventOrdinalLabel(session.events, index, timelineShortLabel(event));
+    dot.className = "timeline-dot " + lane + " " + event.category;
+    dot.setAttribute("data-lane", lane);
+    dot.style.left = percent(event.timeMs, totalMs);
+    dot.innerHTML = '<span class="dot-point"></span><span class="dot-connector"></span><span class="dot-label">' + escapeHtml(labelText) + "</span>";
+    graph.appendChild(dot);
+  }
+
+  function positionTimelineLabels(graph) {
+    var rowsByLane = {
+      top: timelineLayout.createMeasuredTimelineRows(),
+      rhythm: timelineLayout.createMeasuredTimelineRows(),
+      meds: [[]],
+      procedure: timelineLayout.createMeasuredTimelineRows()
+    };
+    var graphWidth = graph.getBoundingClientRect().width;
+    var dots = graph.querySelectorAll(".timeline-dot");
+
+    for (var i = 0; i < dots.length; i += 1) {
+      var dot = dots[i];
+      var lane = dot.getAttribute("data-lane");
+      var label = dot.querySelector(".dot-label");
+      var point = dot.querySelector(".dot-point");
+      var connector = dot.querySelector(".dot-connector");
+      var dotX = dot.offsetLeft;
+      var pointCenterY = point.offsetTop + point.offsetHeight / 2;
+      var labelWidth = label.offsetWidth;
+      var placement = timelineLayout.allocateMeasuredTimelineLabel(rowsByLane[lane], dotX, labelWidth, graphWidth);
+      var labelTop = timelineLabelTop(lane, placement.row);
+      var labelOffsetX = placement.labelLeft - dotX;
+      var labelOffsetY = labelTop - dot.offsetTop;
+
+      label.style.setProperty("--label-offset-x", Math.round(labelOffsetX) + "px");
+      label.style.setProperty("--label-offset-y", Math.round(labelOffsetY) + "px");
+      dot.setAttribute("data-row", String(placement.row));
+
+      positionTimelineConnector(dot, label, connector, pointCenterY, placement.labelLeft, labelTop, labelWidth);
+      dot.classList.add("positioned");
+    }
+  }
+
+  function positionTimelineConnector(dot, label, connector, pointCenterY, labelLeft, labelTop, labelWidth) {
+    var dotX = dot.offsetLeft;
+    var dotY = dot.offsetTop + pointCenterY;
+    var labelHeight = label.offsetHeight;
+    var labelAnchor = timelineConnectorAnchor(dotX, dotY, labelLeft, labelTop, labelWidth, labelHeight);
+    var dx = labelAnchor.x - dotX;
+    var dy = labelAnchor.y - dotY;
+    var length = Math.sqrt(dx * dx + dy * dy) + 1;
+    var angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+    connector.style.setProperty("--connector-y", Math.round(pointCenterY) + "px");
+    connector.style.setProperty("--connector-length", Math.round(length) + "px");
+    connector.style.setProperty("--connector-angle", angle.toFixed(2) + "deg");
+  }
+
+  function timelineConnectorAnchor(dotX, dotY, labelLeft, labelTop, labelWidth, labelHeight) {
+    var centerX = labelLeft + labelWidth / 2;
+    var centerY = labelTop + labelHeight / 2;
+    var dx = centerX - dotX;
+    var dy = centerY - dotY;
+    var halfWidth = labelWidth / 2;
+    var halfHeight = labelHeight / 2;
+    var xScale = Math.abs(dx) < 0.01 ? Infinity : halfWidth / Math.abs(dx);
+    var yScale = Math.abs(dy) < 0.01 ? Infinity : halfHeight / Math.abs(dy);
+    var edgeScale = Math.min(xScale, yScale);
+
+    if (!isFinite(edgeScale)) {
+      edgeScale = 0;
+    }
+
+    return {
+      x: centerX - dx * edgeScale,
+      y: centerY - dy * edgeScale
+    };
+  }
+
+  function timelineLabelTop(lane, row) {
+    if (lane === "top") {
+      return 58 - row * 28;
+    }
+    if (lane === "procedure") {
+      return 256 + row * 30;
+    }
+    if (lane === "meds") {
+      return 226;
+    }
+    return 166 + row * 30;
+  }
+
+  function timelineLane(event) {
+    if (isCompressionTimelineEvent(event)) {
+      return "top";
+    }
+    if (event.category === "test") {
+      return "procedure";
+    }
+    if (event.category === "airway") {
+      return "procedure";
+    }
+    if (event.category === "medication") {
+      return "meds";
+    }
+    return "rhythm";
+  }
+
+  function isCompressionTimelineEvent(event) {
+    return event.category === "compression" || event.label === "CPR ended";
+  }
+
+  function percent(value, total) {
+    return Math.max(0, Math.min(100, (value / Math.max(1, total)) * 100)) + "%";
+  }
+
+  function renderLog() {
+    var events = session.events.slice().reverse();
+    els.eventLog.innerHTML = "";
+    els.eventCount.textContent = session.events.length + " events";
+
+    if (events.length === 0) {
+      var empty = document.createElement("li");
+      empty.innerHTML = '<span class="event-time">--:--</span><span class="event-main"><strong>No events yet</strong><span>Use the buttons above to record ACLS actions.</span></span>';
+      els.eventLog.appendChild(empty);
+      return;
+    }
+
+    for (var i = 0; i < events.length; i += 1) {
+      var event = events[i];
+      var originalIndex = session.events.length - 1 - i;
+      var displayLabel = logic.formatEventOrdinalLabel(session.events, originalIndex, event.label);
+      var li = document.createElement("li");
+      var note = event.notes ? '<span>' + escapeHtml(eventCategoryLabel(event.category) + " · " + event.notes) + "</span>" : '<span>' + escapeHtml(eventCategoryLabel(event.category)) + "</span>";
+      li.innerHTML = '<span class="event-time">' + logic.formatClock(event.timeMs) + '</span><span class="event-main"><strong>' + escapeHtml(displayLabel) + "</strong>" + note + "</span>";
+      els.eventLog.appendChild(li);
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function setDisabledState() {
+    var disabled = session.status === "ended";
+    var controls = document.querySelectorAll("[data-action], #rhythmCheckButton, #restartCycle, #shockButton, #otherMedicationButton, #otherTestButton, #etco2ValueButton, #pauseButton, #resumeButton, #shockEnergy, #otherMedication, #otherTest, #etco2Value");
+    for (var i = 0; i < controls.length; i += 1) {
+      controls[i].disabled = disabled;
+    }
+    els.endButton.textContent = disabled ? "View summary" : "CPR 종료 / Summary";
+  }
+
+  function formatCounts(counts) {
+    var parts = [];
+    Object.keys(counts).forEach(function (key) {
+      parts.push(key + " x" + counts[key]);
+    });
+    return parts.length ? parts.join(", ") : "None";
+  }
+
+  function showSummary() {
+    var summary = logic.buildSummary(session, session.endedAt || now());
+    var fractionText = Math.round(summary.compressionFraction * 100) + "%";
+    var html = [
+      metric("Total CPR", logic.formatClock(summary.totalMs)),
+      metric("Pause time", logic.formatClock(summary.pauseMs)),
+      metric("Compression fraction", fractionText),
+      metric("Pauses", String(summary.pauseCount)),
+      metric("Longest pause", logic.formatClock(summary.longestPauseMs)),
+      metric("Shocks", String(summary.shockCount)),
+      metric("Medications", formatCounts(summary.medicationCounts)),
+      metric("Rhythms", formatCounts(summary.rhythmCounts)),
+      metric("Tests/procedures", summary.tests.length ? summary.tests.join(", ") : "None")
+    ].join("");
+    els.summaryContent.innerHTML = html;
+
+    if (els.summaryDialog.showModal) {
+      els.summaryDialog.showModal();
+    } else {
+      window.alert(els.summaryContent.textContent);
+    }
+  }
+
+  function metric(label, value) {
+    return '<div class="metric"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + "</strong></div>";
+  }
+
+  function render() {
+    var currentNow = now();
+    renderTimers(currentNow);
+    renderStatus(currentNow);
+    renderTimeline();
+    renderEpinephrineTimelineTimer(currentNow);
+    renderMetronome();
+    renderLog();
+    setDisabledState();
+  }
+
+  addActionListeners();
+  render();
+  window.setInterval(render, 1000);
+}());
+
+    </script>
+  </body>
+</html>
